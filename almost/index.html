@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>almostAudio</title>
+	<style>
+		
+		body {
+			color: #333;
+			font-family: sans-serif;
+			margin: 0 auto;
+			padding: 48px;
+			max-width: 1020px;
+		}
+		
+		a {
+			color: #0033ff;
+		}
+		
+		h1 {
+			border-bottom: 3px solid #aaa;
+		}
+		
+		h2, h3 {
+			padding-top: 36px;
+		}
+		
+		#player {
+			background: #555;
+			border-bottom: 2px solid #333;
+			color: #fff;
+			width: 300px;
+		}
+		
+		#display {
+			font-weight: bold;
+			margin: 0;
+			padding: 12px 24px;
+			text-align: center;
+			text-transform: uppercase;
+		}
+		
+		#controls {
+			border-bottom: 3px solid #444;
+			margin: 0;
+			padding: 0 0 6px 0;
+			text-align: center;
+		}
+		
+		#playlist {
+			list-style: none none;
+			margin: 0;
+			padding: 0;
+		}
+		
+		#playlist a {
+			background: #666;
+			border-top: 1px solid #999;
+			border-bottom: 1px solid #333;
+			color: #eee;
+			display: block;
+			padding: 6px 24px;
+			text-decoration: none;
+		}
+		
+		#playlist a:hover, #playlist a:focus {
+			background: #444 !important;
+			border-top-color: #444;
+			outline: 0;
+		}
+		
+		#playlist .skip {
+			color: #888;
+			text-decoration: line-through;
+		}
+		
+		#playlist .playing {
+			background: #777;
+			border-left: 5px solid #60BF5F;
+			color: #fff;
+			font-weight: bold;
+		}
+		
+		table {
+			border-collapse: collapse;
+			margin: 24px 0;
+		}
+		
+		th, td {
+			padding: 6px 12px;
+			text-align: left;
+		}
+		
+		thead th {
+			border-bottom: 2px solid #aaa;
+			color: #999;
+			font-size: 75%;
+			text-align: left;
+			text-transform: uppercase;
+		}
+		
+		tbody th, tbody td {
+			border-bottom: 1px solid #ccc;
+		}
+		
+		tbody th {
+			white-space: nowrap;
+		}
+		
+		tbody th span {
+			color: #999;
+		}
+		
+		.broken {
+			color: red;
+		}
+		
+		pre {
+			background: #eee;
+		}
+		
+	</style>
+</head>
+<body>
+
+<h1>almostAudio</h1>
+
+<p>A simple, invisible, omnipresent MP3 player built with jQuery 1.4.4, jQuery SWFObject, Flash and HTML5.</p>
+
+<h2>Demo</h2>
+
+<p>Click or tap playlist items to deselect them.</p>
+
+<div id="player">
+	<p id="display">(Waiting to play)</p>
+	<p id="controls">
+		<button id="prev">&laquo; Back</button> 
+		<button id="play-pause">Play</button> 
+		<button id="next">Next &raquo;</button>
+	</p>
+	<ol id="playlist">
+		<li><a href="media/botanist_flourescent-microwave.mp3">Botanist</a></li>
+		<li><a href="media/happy-families.mp3">Sam Fonteyn</a></li>
+		<li><a href="media/screw-on-the-loose.mp3">Tony Lowry</a></li>
+		<li><a href="media/turkey-trot.mp3">John Longmire</a></li>
+	</ol>
+</div>
+
+<noscript>
+	<p>This demo is not functional without JavaScript enabled.</p>
+</noscript>
+
+<h3>Demo Source</h3>
+
+<pre><code>// You should always check for this, just in case
+if ($.almostAudio.available) {
+
+	// This function jumps to the next song to play.
+	// The first argument is a boolean and will force a play start.
+	// The second is also a boolean. If true, it will hunt for the next track in reverse.
+	function playNext(start, prev) {
+		// Grab the currently playing item int he playlist
+		var $playing = $('#playlist .playing');
+		// If it exists, let's find the next song to play
+		if ($playing.length) {
+			// We'll use this query to find the next track
+			var query = ':has(a:not(.skip)):first';
+			// Use nextAll or prevAll depending on direction
+			var $next = prev ? 
+				$playing.parents('li').prevAll(query).find('a') :
+				$playing.parents('li').nextAll(query).find('a');
+			// Remove the 'playing' class from what's currently playing
+			$playing.removeClass('playing');
+		} 
+		// If nothing is currently playing, play the first song
+		else {
+			// Grab either the first or last depending on direction
+			var $next = prev ? 
+				$('#playlist li a:not(.skip):last') :
+				$('#playlist li a:not(.skip):first');
+		}
+		// If we have a next track to play, let's do so!
+		if ($next.length) {
+			// Add the 'playing' class to the new item
+			$next.addClass('playing');
+			// If play start is forced or something is already playing, start playing right away
+			if (start===true || $.almostAudio.paused === false) {
+				$.almostAudio.play($next.attr('href'));
+				$('#display').text($next.text());
+			}
+			// Otherwise, simply prep file for playback
+			else {
+				$.almostAudio.init($next.attr('href'));
+				$('#display').text('(Waiting to play)');
+			}
+		} 
+		// If there's nothing to play, stop anything in progress
+		else {
+			$.almostAudio.stop();
+			$('#display').text('(End of Playlist)');
+		}
+	}
+
+	// On play, change the button and display text
+	$.almostAudio.onPlay = function(){
+		$('#display').text($('#playlist .playing').text());
+		$('#play-pause').text('Pause');
+	}
+	// On pause, change the button and display text
+	$.almostAudio.onPause = function(){
+		$('#display').text('(Paused)');
+		$('#play-pause').text('Play');
+	}
+	// On stop, revert the button text to its initial state
+	$.almostAudio.onStopped = function(){
+		$('#play-pause').text('Play');
+	}
+	// When a song ends, play the next one
+	$.almostAudio.onEnded = function(){
+		$('#play-pause').text('Play');
+		playNext();
+	}
+	// Activate/deactivate playlist items on click
+	$('#playlist a').click(function(e){
+		$(this).toggleClass('skip');
+		e.preventDefault();
+	});
+	// Play/pause current song or start the first song
+	$('#play-pause').click(function(){
+		var $playing = $('.playing');
+		if ($playing.length) {
+			$.almostAudio.playPause();
+		} else {
+			playNext(true);
+		}
+	});
+	// Skip to previous track
+	$('#prev').click(function(){
+		playNext(false, true);
+	});
+	// Skip to next track
+	$('#next').click(playNext);
+	
+	$('#player').after(
+		'&amp;lt;p&amp;rt;This demo is using ' +
+		( $.almostAudio.useFlash ? 'Flash' : 'HTML5 audio' ) +
+		' for playback.&amp;lt;/p&amp;rt;'
+	);
+
+}</code></pre>
+
+<h2>Requirements</h2>
+
+<ul>
+	<li><a href="http://jquery.com/">jQuery v1.4.4</a></li>
+	<li><a href="http://jquery.thewikies.com/swfobject/">jQuery SWFObject v1.1.1</a></li>
+	<li>
+		One of the following playback mechanisms:
+		<ul>
+			<li>HTML5 audio with MP3 codec support</li>
+			<li>Flash player 10 or greater</li>
+		</ul>
+	</li>
+</ul>
+
+<h2>Compatibility</h2>
+
+<p>Text in <span class="broken">red</span> indicates a broken implementation for this browser.</p>
+
+<table>
+	<thead>
+		<tr>
+			<th scope="col">Browser</th>
+			<th scope="col">Version</th>
+			<th scope="col">Playback</th>
+			<th scope="col">Known Issues</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<th scope="row">Chrome</th>
+			<td>8</td>
+			<td>HTML5</td>
+			<td>None yet.</td>
+		</tr>
+		<tr>
+			<th scope="row">Firefox</th>
+			<td>3.6</td>
+			<td>Flash</td>
+			<td>PC version will stop responding if SWF is completely hidden or off screen.</td>
+		</tr>
+		<tr>
+			<th scope="row" rowspan="3">Internet Explorer</th>
+			<td>7</td>
+			<td rowspan="2">Flash</td>
+			<td rowspan="2">Quirky when calling <code>init</code> method too soon after page load, more predictable if method calls are tied to event.</td>
+		</tr>
+		<tr>
+			<td>8</td>
+		</tr>
+		<tr class="broken">
+			<td>9 Beta</td>
+			<td>HTML5</td>
+			<td>Audio element has numerous bugs in beta, including inability to refresh src of an audio element (or even swap it out via JavaScript), and methods not responding without a setTimeout to facilitate an artificial delay.</td>
+		</tr>
+		<tr>
+			<th scope="row">Opera</th>
+			<td>11</td>
+			<td>Flash</td>
+			<td>None yet.</td>
+		</tr>
+		<tr>
+			<th scope="row" rowspan="3">Safari</th>
+			<td>5</td>
+			<td rowspan="3">HTML5</td>
+			<td rowspan="3">None yet.</td>
+		</tr>
+		<tr>
+			<td>iPad (iOS4)</td>
+		</tr>
+		<tr>
+			<td>iPhone (iOS4)</td>
+		</tr>
+	</tbody>
+</table>
+
+<h2>Methods</h2>
+
+<p>All methods will return <code>true</code> or <code>false</code> depending on their ability to actually enact change. For example, if there is nothing to new to start playing and nothing in progress to resume playing, <code>$.almostAudio.play()</code> will return <code>false</code>.</p>
+
+<table>
+	<thead>
+		<tr>
+			<th scope="col">Method</th>
+			<th scope="col">Description</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<th scope="row"><code>$.almostAudio.init(<span>options</span>);</code></th>
+			<td>Initializes a new set of options without taking immediate action (unless specified via setting, such as <code>autoplay</code> or <code>preload</code>).</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>$.almostAudio.play(<span>options</span>);</code></th>
+			<td>Resume or begin the current song, or pass along a new one to start playing immediately.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>$.almostAudio.pause(<span>options</span>);</code></th>
+			<td>Pause the current song.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>$.almostAudio.playPause(<span>options</span>);</code></th>
+			<td>Will either play or pause depending on the current player state, passing along <code>options</code> to the relevant method.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>$.almostAudio.stop(<span>options</span>);</code></th>
+			<td>Will stop playing the current song and reset all progress attributes.</td>
+		</tr>
+	</tbody>
+</table>
+
+<h2>Options</h2>
+
+<p>Options can be manipulated by directly interacting with the <code>$.almostAudio</code> object, or by passing an argument to any of the above methods. If your change should be applied immediately, you should pass it a method such as <code>init</code>.</p>
+
+<h3>As Object Attributes</h3>
+
+<p>Manipulating the object directly is a good way of making changes without immediate consequence. The best example of this is for callbacks.</p>
+
+<pre><code>$.almostAudio.onPlay = function(){
+	alert('You started playing a song, nice work!');
+}
+$.almostAudio.play('song.mp3');</code></pre>
+
+<p>The callback is applied beforehand, and will trigger if the method is successful.</p>
+
+<h3>As Method Arguments</h3>
+
+<p>Passing along options as an argument insures they'll be integrated into the requested action.</p>
+
+<pre><code>$.almostAudio.playPause({
+	src: 'song.mp3',
+	loop: true,
+	onPlay: function(){ alert('You are playing '+$.almostAudio.src); },
+	onPause: function(){ alert('You paused '+$.almostAudio.src); }
+});</code></pre>
+
+<p>This example could give you complete pause/play functionality in one call. The song will loop and will alert the user on pause and playback.</p>
+
+<h3>Table of Options</h3>
+
+<table>
+	<thead>
+		<tr>
+			<th scope="col">Option</th>
+			<th scope="col">Default</th>
+			<th scope="col">Description</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<th scope="row"><code>autocreate</code></th>
+			<td>Same as <code>useFlash</code> attribute</td>
+			<td>If <code>true</code>, player object will be instantiated when the DOM is ready instead of waiting for user action. Defaults to <code>true</code> if Flash is the media playback method due to security restrictions in Internet Explorer.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>autoplay</code></th>
+			<td><code>false</code></td>
+			<td>If <code>true</code>, songs will begin playing immediately after data load. Redundant for any method other than <code>init</code>.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>loop</code></th>
+			<td><code>false</code></td>
+			<td>If <code>true</code>, the current song will loop.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>onEnded</code></th>
+			<td><code>null</code></td>
+			<td>Optional callback, fires after a song plays completely.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>onLoadedData</code></th>
+			<td><code>null</code></td>
+			<td>Optional callback, fires after the song has loaded.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>onLoadError</code></th>
+			<td><code>null</code></td>
+			<td>Optional callback, fires when the player object reports an error loading the requested song.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>onPause</code></th>
+			<td><code>null</code></td>
+			<td>Optional callback, fires after the <em>pause</em> method is called.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>onPlay</code></th>
+			<td><code>null</code></td>
+			<td>Optional callback, fires after the <em>play</em> method is called.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>onStopped</code></th>
+			<td><code>null</code></td>
+			<td>Optional callback, fires after the <em>stop</em> method is called. Named oddly to avoid reserved method name.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>preload</code></th>
+			<td><code>true</code></td>
+			<td>If <code>true</code>, the song will begin preloading as soon as it's provided (instead of waiting until playback is requested). Useful if you plan on loading a sizable file using <code>init</code> instead of on player action.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>src</code></th>
+			<td><code>null</code></td>
+			<td>The location of the MP3 file to play.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>style</code></th>
+			<td><pre><code>{
+width: '1px', 
+height: '1px', 
+left: '0', 
+top: '0', 
+position: 'absolute'
+}</code></pre></td>
+			<td>The CSS applied to the container object for the player.</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>swf</code></th>
+			<td><pre><code>{
+swf: 'swf/almostaudio-0.1.swf',
+width: 1,
+height: 1,
+flashvars: {
+	callback: '$.almostAudio._callback'
+	}
+}</code></pre></td>
+			<td>Attributes for SWFObject to use to create the Flash player.</td>
+		</tr>
+	</tbody>
+</table>
+
+<h2>Attributes</h2>
+
+<p>These attributes (all booleans) are technically editable just like the above options, but doing so has no real utility and will probably mess you up. These should come in very handy when developing your player.</p>
+
+<p>Attributes can be accessed just like any object attribute. For example: <code>$.almostAudio.paused;</code></p>
+
+<p>Attributes describing a state related to the current <code>src</code> return <code>true</code>, <code>false</code> or <code>null</code> if not applicable to the current player state. For example, <code>paused</code> returns <code>false</code> if a song is playing and <code>null</code> if there's no song to pause in the first place.</p>
+
+<table>
+	<thead>
+		<tr>
+			<th scope="col">Attribute</th>
+			<th scope="col">Description</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<th scope="row"><code>available</code></th>
+			<td>Does the user have the minimum plugin requirements?</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>ended</code></th>
+			<td>Has the current song finished playing naturally?</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>hasFlash</code></th>
+			<td>Are jQuery SWFObject and the minimum Flash version both available?</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>loadeddata</code></th>
+			<td>Has data for the current song loaded successfully?</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>paused</code></th>
+			<td>Is the song paused?</td>
+		</tr>
+		<tr>
+			<th scope="row"><code>useFlash</code></th>
+			<td>Based on <code>hasFlash</code> and codec support, are we currently using Flash instead of HTML5 audio?</td>
+		</tr>
+	</tbody>
+</table>
+
+<script src="js/libs/jquery-1.4.4.min.js"></script>
+<script src="js/plugins/jquery.swfobject.1-1-1.min.js"></script>
+<script src="js/plugins/jquery.almostaudio.js"></script>
+<script>
+
+// You should always check for this, just in case
+if ($.almostAudio.available) {
+
+	// This function jumps to the next song to play.
+	// The first argument is a boolean and will force a play start.
+	// The second is also a boolean. If true, it will hunt for the next track in reverse.
+	function playNext(start, prev) {
+		// Grab the currently playing item int he playlist
+		var $playing = $('#playlist .playing');
+		// If it exists, let's find the next song to play
+		if ($playing.length) {
+			// We'll use this query to find the next track
+			var query = ':has(a:not(.skip)):first';
+			// Use nextAll or prevAll depending on direction
+			var $next = prev ? 
+				$playing.parents('li').prevAll(query).find('a') :
+				$playing.parents('li').nextAll(query).find('a');
+			// Remove the 'playing' class from what's currently playing
+			$playing.removeClass('playing');
+		} 
+		// If nothing is currently playing, play the first song
+		else {
+			// Grab either the first or last depending on direction
+			var $next = prev ? 
+				$('#playlist li a:not(.skip):last') :
+				$('#playlist li a:not(.skip):first');
+		}
+		// If we have a next track to play, let's do so!
+		if ($next.length) {
+			// Add the 'playing' class to the new item
+			$next.addClass('playing');
+			// If play start is forced or something is already playing, start playing right away
+			if (start===true || $.almostAudio.paused === false) {
+				$.almostAudio.play($next.attr('href'));
+				$('#display').text($next.text());
+			}
+			// Otherwise, simply prep file for playback
+			else {
+				$.almostAudio.init($next.attr('href'));
+				$('#display').text('(Waiting to play)');
+			}
+		} 
+		// If there's nothing to play, stop anything in progress
+		else {
+			$.almostAudio.stop();
+			$('#display').text('(End of Playlist)');
+		}
+	}
+
+	// On play, change the button and display text
+	$.almostAudio.onPlay = function(){
+		$('#display').text($('#playlist .playing').text());
+		$('#play-pause').text('Pause');
+	}
+	// On pause, change the button and display text
+	$.almostAudio.onPause = function(){
+		$('#display').text('(Paused)');
+		$('#play-pause').text('Play');
+	}
+	// On stop, revert the button text to its initial state
+	$.almostAudio.onStopped = function(){
+		$('#play-pause').text('Play');
+	}
+	// When a song ends, play the next one
+	$.almostAudio.onEnded = function(){
+		$('#play-pause').text('Play');
+		playNext();
+	}
+	// Activate/deactivate playlist items on click
+	$('#playlist a').click(function(e){
+		$(this).toggleClass('skip');
+		e.preventDefault();
+	});
+	// Play/pause current song or start the first song
+	$('#play-pause').click(function(){
+		var $playing = $('.playing');
+		if ($playing.length) {
+			$.almostAudio.playPause();
+		} else {
+			playNext(true);
+		}
+	});
+	// Skip to previous track
+	$('#prev').click(function(){
+		playNext(false, true);
+	});
+	// Skip to next track
+	$('#next').click(playNext);
+	
+	$('#player').after(
+		'<p>This demo is using ' +
+		( $.almostAudio.useFlash ? 'Flash' : 'HTML5 audio' ) +
+		' for playback.</p>'
+	);
+
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Projekktor - simply mighty video</title>
+    <style type="text/css">
+	body { background-color: #fdfdfd; padding: 0 20px; color:#000; font: 13px/18px monospace; width: 800px;}
+	a { color: #360; }
+	h3 { padding-top: 20px; }
+    </style>
+
+    <!-- Load player theme -->
+    <link rel="stylesheet" href="theme/style.css" type="text/css" media="screen" />
+
+    <!-- Load jquery -->
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+
+    <!-- load projekktor -->
+    <script type="text/javascript" src="js/projekktor.min.js"></script>
+
+</head>
+<body>
+	<video id="player_a" class="projekktor" title="this is Projekktor" width="640" height="385" controls>
+		<source src="videos/HoneyMoon.m4v" type="video/mp4" />
+   </video>
+
+	<script type="text/javascript">
+		$(document).ready(function() {
+  		projekktor("#player_a"); // instantiation
+		});
+	</script>
+
+</body>
+</html>
